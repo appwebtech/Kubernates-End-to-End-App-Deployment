@@ -81,4 +81,81 @@ We can actually describe the pod and see what is happening under the hood. Mongo
 
 ![image-2](./images/image-2)
 
-###
+### MongoDB Internal Service
+
+It's time to create the internal service for MongoDB to enable requests to and from Mongo by other services. I'll amalgamate the **Service** descriptor file with the mongo deployment because mongo is a dependency of the service without which it won't relay requests to Mongo Express.
+
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+```
+
+<details>
+  <summary>Click to View Complete File</summary>
+  
+  ### Console Output
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+                name: mongodb-secret
+                key: mongo-root-username
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+              secretKeyRef:
+                name: mongodb-secret
+                key: mongo-root-password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+
+```
+</details>
+
+Upon applying the descriptor yaml file, the *mongodb-deployment* will remain unchanged as I had run it previously. K8s is idempotent or smart enough to know I applied the configuration previously so it won't apply it again.
+
+![image-3](./images/image-3)
+
+![image-4](./images/image-4)
+
