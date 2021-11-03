@@ -60,3 +60,25 @@ spec:
                 key: mongo-root-password
 ```
 
+Before creating the deployment, Ill create the secret but instead of hard-coding the values of the username and password, I have encrypted them in base64 using my terminal and added the hashes in my secret file.
+
+```yaml 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+type: Opaque
+data:
+    mongo-root-username: am9zZW1iaQ==
+    mongo-root-password: Y2F0aGVkcmFs
+```
+
+In bash, I'll apply the secret descriptor file and subsequently the mongo descriptor as well. See below the container is creating. 
+
+![image-1](./images/image-1)
+
+We can actually describe the pod and see what is happening under the hood. Mongo ismage is still getting pulled from dockerhub...
+
+![image-2](./images/image-2)
+
+###
