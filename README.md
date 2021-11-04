@@ -23,7 +23,7 @@ I will need two pods to house the two applications (MongoDB pod and Mongo Expres
 4. **MongoDB Internal Service** relays request to **MongoDB Pod**
 5. **MongoDB Pod** authenticates request via **Secret**
 
-### MongoDB Deployment
+### MongoDB Deployment & Service
 
 ```yaml
 apiVersion: apps/v1
@@ -159,3 +159,168 @@ Upon applying the descriptor yaml file, the *mongodb-deployment* will remain unc
 
 ![image-4](./images/image-4)
 
+## MongoExpress Deplloyment, Service & ConfigMap
+
+With the same methodology I used previously, I have created the **mongo-express.yaml** descriptor file which I shall apply using kubectl and add the **service** which shall be accessible externally at port 8081 via HTTP protocol. The environment variables to configure the descriptor are available in [dockerhub](https://hub.docker.com/_/mongo-express) for mongo-express and [here](https://hub.docker.com/_/mongo) for mongodb, it's a matter of *copy-paste* if you want to avoid typos. 
+
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom:
+              secretKeyRef:
+                name: mongodb-secret
+                key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef:                    # Referenced configMap
+              name: mongodb-configmap
+              key: database_url
+```
+
+I have re-used the username and password that I used in mongodb, next thing to do now is create the configmap which I'll outline below, which has more or less the same construct as secret. The order of execution matters. I need the configmap ready prior to execution of service in order to reference it (See comment on code above for the reference).
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-configmap
+data:
+  database_url: mongodb-service
+```
+
+![image-5](./images/image-5)
+
+In order to access mongo-express on browser I'll deploy the external service (see below) by adding it to the mongo-express.yaml descriptor. I have exposed the service port at 8081 and the target port of 8081 is where the container is listening; the **type** of **LoadBalancer** is what makes it an external service which might be confusing for cloud engineers as there are various types of load balancers which can be **internal** or **external**.
+
+Again the internal service in K8s distributes traffic load acting as a load balancer itself although not been labeled explicitly with a name of **LoadBalancer** because it doesn't assign external IP to Pods. Supposing you want to get to the airport very fast and you ask your friend to get you a cab. Instead s/he gets you an Uber instead. Different names, same functions but one with an extra capability of accepting cashless payments.
+
+The nodeport is where the external IP will be open.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-express-service
+spec:
+  selector:
+    app: mongo-express
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30000
+```
+
+I have applied mongo-express deployment descriptor yaml file and it's up and running. If I get the mongo-express logs I can see the server is open to allow connections from anywhere.
+
+![image-6](./images/image-6)
+
+
+<details>
+  <summary>Click to View Complete File</summary>
+  
+  ### Console Output
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom:
+              secretKeyRef:
+                name: mongodb-secret
+                key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-express-service
+spec:
+  selector:
+    app: mongo-express
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30000
+```
+</details>
+
+After instantiating the service, I launched the browser using minikube, which assigned a service to mongo-express and launched it using the default systems.
+
+![image-7](./images/image-7)
+
+Poking things around to create a **Test-DB** database. 
+
+![image-8](./images/image-8)
+
+The following happened in the split of a second whilst creating the DB.
+
+* Browser send request to Mongo Express External Service
+
+* Mongo Express External Service forwarded the request to Mongo Express Pod
+
+* Mongo Express Pod forwarded the request to MongoDB Internal Service
+
+* MongoDB Internal Service forwarded the request to MongoDB Pod
+
+Viewing the **Test-DB** database table.
+
+![image-9](./images/image-9)
