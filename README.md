@@ -6,15 +6,15 @@
 
 ----
 
-# End-to-End Application Deployment with K8s
+# End-to-End Application Deployment with Kubernates
 
 ## Introduction
 
-In this project, I will be deploying end-to-end mongo-express and mongoDB applications using K8s. This project mimics a production environment where a web tier (mongo-express) uses CRUD to manage objects in a database tier (MongoDB). Mongo Express is a lightweight web-based administrative UI used to manage MongoDB databases interactively. It's designed using Express JS, Twitter Bootstrap and Node.js technologies.
+In this project, I will be deploying an end-to-end mongo-express and mongoDB applications using Kubernates (K8s). This project mimics a production environment where a web tier (mongo-express) uses CRUD to manage objects in a database tier (MongoDB). I did create a similar project with an app-tier using Docker containers, you can check out the [Docker repo](https://github.com/appwebtech/Docker) and scroll down to "Developing with Docker". Mongo Express is a lightweight web-based administrative UI used to manage MongoDB databases interactively. It's designed using Express JS, Twitter Bootstrap and Node.js technologies.
 
 ## Tech Stack Architecture
 
-I will need two pods to house the two applications (MongoDB pod and Mongo Express pod). MongoDB pod will use an **Internal Service** whilst Mongo Express will need a **Deployment.yaml** descriptor and will need to be externally exposed via an **External Service** for use via HTTP requests in a browser. I'll create a **ConfigMap** which will house the *DB url* and a **Secret** which will house the *DB User* and *DB Password* which will be referenced in the descriptor file.
+I will need two pods to house the two applications (MongoDB pod and Mongo Express pod). MongoDB pod will use an **Internal Service** whilst Mongo Express will need an **External Service**. Both will be deployed using descriptor YAML files. Later I'll create a **ConfigMap** which will house the *DB url* and I'll also create a **Secret** which will house the *DB User* and *DB Password*.
 
 ### Browser Request Flow
 
@@ -25,6 +25,8 @@ I will need two pods to house the two applications (MongoDB pod and Mongo Expres
 5. **MongoDB Pod** authenticates request via **Secret**
 
 ### MongoDB Deployment & Service
+
+I've prepared the descriptor YAML file which I'll use for the deployment.
 
 ```yaml
 apiVersion: apps/v1
@@ -74,17 +76,17 @@ data:
     mongo-root-password: Y2F0aGVkcmFs
 ```
 
-In bash, I'll apply the secret descriptor file and subsequently the mongo descriptor as well. See below the container is creating. 
+In bash, I'll apply the secret descriptor file and subsequently the mongo descriptor as well. See below the container is in **creating** phase. 
 
 ![image-1](./images/image-1)
 
-We can actually describe the pod and see what is happening under the hood. Mongo ismage is still getting pulled from dockerhub...
+We can actually describe the pod and see what is happening under the hood. Mongo image is still getting pulled from dockerhub...
 
 ![image-2](./images/image-2)
 
 ### MongoDB Internal Service
 
-It's time to create the internal service for MongoDB to enable requests to and from Mongo by other services. I'll amalgamate the **Service** descriptor file with the mongo deployment because mongo is a dependency of the service without which it won't relay requests to Mongo Express.
+It's time to create the internal service for MongoDB to enable requests to and from Mongo by other services. I'll amalgamate the **Service** descriptor file with the mongo deployment because mongo is a dependency of the service without which it won't relay requests to Mongo Express and by the way that's how [kubernates](https://kubernetes.io/) creates them.
 
 ```yaml
 ---
@@ -154,16 +156,15 @@ spec:
 ```
 </details>
 
-Upon applying the descriptor yaml file, the *mongodb-deployment* will remain unchanged as I had run it previously. K8s is idempotent or smart enough to know I applied the configuration previously so it won't apply it again.
+Upon applying the descriptor yaml file, the *mongodb-deployment* will remain unchanged as I had run it previously. K8s is **idempotent** or smart enough to know I applied the configuration previously so it won't apply it again.
 
 ![image-3](./images/image-3)
 
 ![image-4](./images/image-4)
 
-## MongoExpress Deplloyment, Service & ConfigMap
+## MongoExpress Deployment, Service & ConfigMap
 
-With the same methodology I used previously, I have created the **mongo-express.yaml** descriptor file which I shall apply using kubectl and add the **service** which shall be accessible externally at port 8081 via HTTP protocol. The environment variables to configure the descriptor are available in [dockerhub](https://hub.docker.com/_/mongo-express) for mongo-express and [here](https://hub.docker.com/_/mongo) for mongodb, it's a matter of *copy-paste* if you want to avoid typos. 
-
+With the same methodology I used previously, I have created the **mongo-express.yaml** descriptor file which I shall apply using kubectl and add the **service** which shall be accessible externally at port 8081 via HTTP protocol. The environment variables to configure the descriptor are available in [dockerhub](https://hub.docker.com/_/mongo-express) for mongo-express and [here](https://hub.docker.com/_/mongo) for mongodb, it's a matter of *copy-paste* if you want to avoid typos and know what you are doing.
 
 ```yaml
 apiVersion: apps/v1
@@ -205,7 +206,7 @@ spec:
               key: database_url
 ```
 
-I have re-used the username and password that I used in mongodb, next thing to do now is create the configmap which I'll outline below, which has more or less the same construct as secret. The order of execution matters. I need the configmap ready prior to execution of service in order to reference it (See comment on code above for the reference).
+I have re-used the username and password that I used in mongodb, next thing to do now is create the **ConfigMap** which I'll outline below, which has more or less the same construct as **Secret**. The order of execution matters. I need the **ConfigMap** ready prior to execution of service in order to reference it (See comment on code above for the reference).
 
 ```yaml
 apiVersion: v1
@@ -218,9 +219,9 @@ data:
 
 ![image-5](./images/image-5)
 
-In order to access mongo-express on browser I'll deploy the external service (see below) by adding it to the mongo-express.yaml descriptor. I have exposed the service port at 8081 and the target port of 8081 is where the container is listening; the **type** of **LoadBalancer** is what makes it an external service which might be confusing for cloud engineers as there are various types of load balancers which can be **internal** or **external**.
+In order to access mongo-express on browser I'll deploy the external service (see below) by adding it to the mongo-express.yaml descriptor. I have exposed the *service port* as **8081** and the *target port* of **8081** is where the container is listening; the **type** of **LoadBalancer** is what makes it an external service which might be confusing for cloud engineers as there are various types of load balancers which can be **internal** or **external**.
 
-Again the internal service in K8s distributes traffic load acting as a load balancer itself although not been labeled explicitly with a name of **LoadBalancer** because it doesn't assign external IP to Pods. Supposing you want to get to the airport very fast and you ask your friend to get you a cab. Instead s/he gets you an Uber instead. Different names, same functions but one with an extra capability of accepting cashless payments.
+Again the internal service in K8s distributes traffic load acting as a load balancer itself although not been labeled explicitly with the name of **LoadBalancer** because it doesn't assign external IP to Pods. Supposing you want to get to the airport very fast and you ask your friend to get you a cab. Instead s/he gets you an Uber. See? different names, same functions but one with a limited capability of accepting only cashless payments.
 
 The nodeport is where the external IP will be open.
 
@@ -243,7 +244,6 @@ spec:
 I have applied mongo-express deployment descriptor yaml file and it's up and running. If I get the mongo-express logs I can see the server is open to allow connections from anywhere.
 
 ![image-6](./images/image-6)
-
 
 <details>
   <summary>Click to View Complete File</summary>
@@ -304,11 +304,11 @@ spec:
 ```
 </details>
 
-After instantiating the service, I launched the browser using minikube, which assigned a service to mongo-express and launched it using the default systems.
+After instantiating the service, I launched the browser using **minikube**, which assigned a service to mongo-express and launched it using the default systems.
 
 ![image-7](./images/image-7)
 
-Poking things around to create a **Test-DB** database. 
+Poking things around to create a **Test-DB** database.
 
 ![image-8](./images/image-8)
 
