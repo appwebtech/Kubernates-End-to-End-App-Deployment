@@ -78,11 +78,11 @@ data:
 
 In bash, I'll apply the secret descriptor file and subsequently the mongo descriptor as well. See below the container is in **creating** phase. 
 
-![image-1](./images/image-1)
+![image-1](./images/image-1.png)
 
 We can actually describe the pod and see what is happening under the hood. Mongo image is still getting pulled from dockerhub...
 
-![image-2](./images/image-2)
+![image-2](./images/image-2.png)
 
 ### MongoDB Internal Service
 
@@ -158,9 +158,9 @@ spec:
 
 Upon applying the descriptor yaml file, the *mongodb-deployment* will remain unchanged as I had run it previously. K8s is **idempotent** or smart enough to know I applied the configuration previously so it won't apply it again.
 
-![image-3](./images/image-3)
+![image-3](./images/image-3.png)
 
-![image-4](./images/image-4)
+![image-4](./images/image-4.png)
 
 ## MongoExpress Deployment, Service & ConfigMap
 
@@ -217,7 +217,7 @@ data:
   database_url: mongodb-service
 ```
 
-![image-5](./images/image-5)
+![image-5](./images/image-5.png)
 
 In order to access mongo-express on browser I'll deploy the external service (see below) by adding it to the mongo-express.yaml descriptor. I have exposed the *service port* as **8081** and the *target port* of **8081** is where the container is listening; the **type** of **LoadBalancer** is what makes it an external service which might be confusing for cloud engineers as there are various types of load balancers which can be **internal** or **external**.
 
@@ -243,7 +243,7 @@ spec:
 
 I have applied mongo-express deployment descriptor yaml file and it's up and running. If I get the mongo-express logs I can see the server is open to allow connections from anywhere.
 
-![image-6](./images/image-6)
+![image-6](./images/image-6.png)
 
 <details>
   <summary>Click to View Complete File</summary>
@@ -306,11 +306,11 @@ spec:
 
 After instantiating the service, I launched the browser using **minikube**, which assigned a service to mongo-express and launched it using the default systems.
 
-![image-7](./images/image-7)
+![image-7](./images/image-7.png)
 
 Poking things around to create a **Test-DB** database.
 
-![image-8](./images/image-8)
+![image-8](./images/image-8.png)
 
 The following happened in the split of a second whilst creating the DB.
 
@@ -324,4 +324,4 @@ The following happened in the split of a second whilst creating the DB.
 
 Viewing the **Test-DB** database table.
 
-![image-9](./images/image-9)
+![image-9](./images/image-9.png)
