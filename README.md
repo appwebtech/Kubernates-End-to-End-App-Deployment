@@ -1,7 +1,7 @@
 <p float="left">
   <img src="https://github.com/appwebtech/EKS-Cluster-With-Terraform/blob/main/images/k8s-logo.png" width="80">
   <img src="https://github.com/appwebtech/Deploy-Docker-With-Terraform/blob/main/images/docker.png" width="100">
-  <img src="https://github.com/appwebtech/Kubernates-End-to-End-App-Deployment/blob/main/images/MongoDB-logo.png" width="120">
+  <img src="https://github.com/appwebtech/Kubernates-End-to-End-App-Deployment/blob/main/images/MongoDB-logo.png" width="280">
 </p>
 
 ----
