@@ -6,7 +6,7 @@
 
 ----
 
-# End-to-End Application Deployment with Kubernates
+# End-to-End Application Deployment with Kubernetes
 
 ## Introduction
 
